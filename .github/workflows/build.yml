@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -35,3 +38,10 @@ jobs:
         with:
           name: PremKurtis-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Save APK to apk branch
+        run: |
+          mkdir /tmp/o && cp app/build/outputs/apk/debug/app-debug.apk /tmp/o/PremKurtis.apk
+          cd /tmp/o && git init -q -b apk && git config user.name actions && git config user.email actions@github.com
+          git add . && git commit -qm "APK build" 
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk
