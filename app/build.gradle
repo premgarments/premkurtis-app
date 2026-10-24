@@ -34,9 +34,19 @@ android {
         }
     }
 
+    signingConfigs {
+        upload {
+            storeFile file('upload.jks')
+            storePassword 'L6UENDvAmbhlLR4UhUGz'
+            keyAlias 'upload'
+            keyPassword 'L6UENDvAmbhlLR4UhUGz'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.upload
         }
     }
 

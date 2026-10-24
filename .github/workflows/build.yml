@@ -29,7 +29,7 @@ jobs:
       - name: Build debug APK
         run: |
           set -o pipefail
-          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log || {
+          gradle assembleDebug bundleCustomerRelease --no-daemon --stacktrace 2>&1 | tee build.log || {
             grep -E "error:|What went wrong|FAILED|Could not|not found|license" -A3 build.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
             exit 1
           }
@@ -41,7 +41,7 @@ jobs:
 
       - name: Save APK to apk branch
         run: |
-          mkdir /tmp/o && cp app/build/outputs/apk/customer/debug/*.apk /tmp/o/PremKurtis-Customer.apk && cp app/build/outputs/apk/invoice/debug/*.apk /tmp/o/PremKurtis-Invoice.apk
+          mkdir /tmp/o && cp app/build/outputs/apk/customer/debug/*.apk /tmp/o/PremKurtis-Customer.apk && cp app/build/outputs/apk/invoice/debug/*.apk /tmp/o/PremKurtis-Invoice.apk && cp app/build/outputs/bundle/customerRelease/*.aab /tmp/o/PremKurtis-Customer.aab
           cd /tmp/o && git init -q -b apk && git config user.name actions && git config user.email actions@github.com
           git add . && git commit -qm "APK build" 
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk
