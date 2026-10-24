@@ -4,14 +4,14 @@ plugins {
 
 android {
     namespace 'com.premkurtis.app'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.premkurtis.app"
         minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        targetSdk 36
+        versionCode 261024
+        versionName "2.0"
     }
 
     buildFeatures {
@@ -22,7 +22,7 @@ android {
     productFlavors {
         customer {
             dimension "app"
-            applicationId "com.premkurtis.app"
+            applicationId "com.sts.premkurtis"
             resValue "string", "app_name", "Prem Kurtis"
             buildConfigField "String", "HOME_URL", '"https://www.premkurtis.com/customer"'
         }
