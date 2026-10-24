@@ -32,7 +32,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String HOME = "https://www.premkurtis.com/";
+    private static final String HOME = BuildConfig.HOME_URL;
     private static final String OFFLINE = "file:///android_asset/offline.html";
 
     private WebView web;
