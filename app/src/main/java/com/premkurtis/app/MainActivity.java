@@ -9,7 +9,15 @@ import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.webkit.GeolocationPermissions;
+import android.location.LocationManager;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import java.io.File;
 import android.os.Environment;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -39,6 +47,33 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipe;
     private ProgressBar progress;
     private ValueCallback<Uri[]> filePathCallback;
+    private Uri selfieUri;
+    private GeolocationPermissions.Callback geoCallback;
+    private String geoOrigin;
+
+    private final ActivityResultLauncher<String[]> locPermLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), res -> {
+                boolean ok = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                if (geoCallback != null) { geoCallback.invoke(geoOrigin, ok, false); geoCallback = null; }
+                if (!ok) Toast.makeText(this, "Location ki permission zaroori hai. Phone Settings > Apps > Prem Attendance > Permissions me Location allow karo.", Toast.LENGTH_LONG).show();
+                else warnIfGpsOff();
+            });
+
+    private final ActivityResultLauncher<Intent> selfieLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (filePathCallback == null) return;
+                filePathCallback.onReceiveValue(result.getResultCode() == RESULT_OK && selfieUri != null ? new Uri[]{selfieUri} : null);
+                filePathCallback = null;
+            });
+
+    private void warnIfGpsOff() {
+        try {
+            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (lm != null && !lm.isProviderEnabled(LocationManager.GPS_PROVIDER) && !lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
+                Toast.makeText(this, "Phone ki Location (GPS) OFF hai. Upar se panel kheench kar Location ON karo.", Toast.LENGTH_LONG).show();
+        } catch (Exception ignored) { }
+    }
 
     private final ActivityResultLauncher<Intent> fileLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -74,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setMediaPlaybackRequiresUserGesture(false);
+        s.setGeolocationEnabled(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setUserAgentString(s.getUserAgentString() + " PremKurtisApp/1.0");
 
@@ -125,10 +161,39 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                boolean has = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                if (has) { callback.invoke(origin, true, false); warnIfGpsOff(); return; }
+                geoCallback = callback; geoOrigin = origin;
+                locPermLauncher.launch(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});
+            }
+
+            @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
                                              FileChooserParams params) {
                 if (filePathCallback != null) filePathCallback.onReceiveValue(null);
                 filePathCallback = callback;
+                if (params.isCaptureEnabled()) {
+                    try {
+                        File dir = new File(getCacheDir(), "selfie");
+                        dir.mkdirs();
+                        File f = new File(dir, "s_" + System.currentTimeMillis() + ".jpg");
+                        selfieUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fp", f);
+                        Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        cam.putExtra(MediaStore.EXTRA_OUTPUT, selfieUri);
+                        cam.putExtra("android.intent.extras.CAMERA_FACING", 1);
+                        cam.putExtra("android.intent.extras.LENS_FACING_FRONT", 1);
+                        cam.putExtra("android.intent.extra.USE_FRONT_CAMERA", true);
+                        cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        selfieLauncher.launch(cam);
+                        return true;
+                    } catch (Exception e) {
+                        filePathCallback = null;
+                        Toast.makeText(MainActivity.this, "Camera nahi khul paya", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                }
                 try {
                     fileLauncher.launch(params.createIntent());
                 } catch (ActivityNotFoundException e) {

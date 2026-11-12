@@ -26,6 +26,12 @@ android {
             resValue "string", "app_name", "Prem Kurtis"
             buildConfigField "String", "HOME_URL", '"https://www.premkurtis.com/customer"'
         }
+        attendance {
+            dimension "app"
+            applicationId "com.premkurtis.attendance"
+            resValue "string", "app_name", "Prem Attendance"
+            buildConfigField "String", "HOME_URL", '"https://www.premgarments.net/attendance.php"'
+        }
         invoice {
             dimension "app"
             applicationId "com.premkurtis.invoice"
